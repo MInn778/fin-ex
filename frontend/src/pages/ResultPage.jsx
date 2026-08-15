@@ -50,7 +50,7 @@ export default function ResultPage() {
         <h2>판단 근거 (XAI)</h2>
         <ul>
           {reasons.map((reason, idx) => (
-            <li key={idx}>{reason}</li>
+            <li key={idx}>{formatReason(reason)}</li>
           ))}
         </ul>
       </section>
@@ -67,4 +67,15 @@ function safeParseReasons(xaiResult) {
   } catch {
     return [];
   }
+}
+
+// db-api 목업은 문자열 배열("HTTPS 미사용"), ml-service는 SHAP 근거 객체
+// ({ feature, reason, direction, contribution })를 준다. 둘 다 지원한다.
+function formatReason(reason) {
+  if (typeof reason === "string") return reason;
+  if (reason && typeof reason === "object" && reason.reason) {
+    const arrow = reason.direction === "RISK_UP" ? "▲" : "▼";
+    return `${reason.reason} ${arrow}`;
+  }
+  return JSON.stringify(reason);
 }

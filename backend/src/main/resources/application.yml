@@ -3,3 +3,9 @@ server:
 
 sandbox:
   base-url: ${SANDBOX_BASE_URL:http://localhost:3001}
+
+ml-service:
+  base-url: ${ML_SERVICE_BASE_URL:http://localhost:8001}
+
+db-api:
+  base-url: ${DB_API_BASE_URL:http://localhost:8081}

@@ -1,22 +1,30 @@
-name: fin-der
-
-# backend/frontend는 아직 Dockerfile이 없어 로컬(mvn/npm)로 실행합니다.
-# 컨테이너화되면 여기에 build/ports/depends_on을 추가합니다.
 services:
-  database:
-    image: mysql:8.0
-    restart: unless-stopped
+  sandbox:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: ${DATABASE_NAME}
-      MYSQL_USER: ${DATABASE_USER}
-      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+      NODE_ENV: production
+      PORT: 3001
+    mem_limit: 1g
+    cpus: 1.0
+    pids_limit: 256
+    shm_size: 512mb
+    init: true
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     ports:
-      - "3306:3306"
-    volumes:
-      - database_data:/var/lib/mysql
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-
-volumes:
-  database_data:
-
+      - "8080:8080"
+    environment:
+      SANDBOX_BASE_URL: http://sandbox:3001
+    depends_on:
+      - sandbox
+    mem_limit: 512m
+    cpus: 1.0
+    pids_limit: 128
+    init: true
+    restart: unless-stopped

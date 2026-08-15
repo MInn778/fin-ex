@@ -1,0 +1,15 @@
+{
+  "analysis_id": "ana_001",
+  "original_url": "https://example.com",
+  "final_url": "https://redirected-example.com/login",
+  "screenshot_path": "C:\\financial-phishing\\multimodal\\fixtures\\phishing\\test.png",
+  "page_text": "KB국민은행 보안인증...",
+  "html": "...",
+  "forms": [
+    {
+      "action": "https://unknown-server.example/submit",
+      "method": "POST",
+      "input_types": ["text", "password", "tel"]
+    }
+  ]
+}

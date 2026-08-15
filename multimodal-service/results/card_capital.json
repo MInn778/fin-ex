@@ -1,0 +1,41 @@
+{
+  "analysis_id": "card_capital_001",
+  "status": "completed",
+  "multimodal_result": {
+    "multimodal_risk_score": 95,
+    "risk_level": "high_risk_suspected",
+    "is_financial_impersonation": true,
+    "impersonated_brand": "KB캐피탈",
+    "brand_category": "capital",
+    "attack_type": "loan_scam",
+    "detected_elements": [
+      "bank_logo",
+      "name_input",
+      "phone_input",
+      "resident_number_input",
+      "account_input",
+      "loan_application_form"
+    ],
+    "reasons": [
+      {
+        "code": "SUSPICIOUS_URL_DOMAIN",
+        "description": "공식 KB캐피탈 도메인이 아닌 의심스러운 외부 도메인을 사용하고 있습니다."
+      },
+      {
+        "code": "IMPERSONATION_OF_FINANCIAL_INSTITUTION",
+        "description": "KB캐피탈의 브랜드 로고와 디자인을 사용하여 사용자를 금융기관으로 오인하도록 유도하고 있습니다."
+      },
+      {
+        "code": "COLLECTION_OF_SENSITIVE_PERSONAL_INFORMATION",
+        "description": "주민등록번호, 계좌번호 등 민감한 개인정보 입력을 요구하여 금융 범죄에 악용될 소지가 매우 높습니다."
+      },
+      {
+        "code": "URGENCY_INDUCEMENT",
+        "description": "오늘 마감 등의 문구로 긴급함을 강조하여 심리적 압박을 통해 즉각적인 정보 입력을 유도하고 있습니다."
+      }
+    ],
+    "confidence": 0.98
+  },
+  "model_name": "gemini-3.1-flash-lite-preview",
+  "prompt_version": "mm_prompt_v1"
+}

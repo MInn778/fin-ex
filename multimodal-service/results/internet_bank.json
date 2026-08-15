@@ -1,0 +1,36 @@
+{
+  "analysis_id": "internet_bank_001",
+  "status": "completed",
+  "multimodal_result": {
+    "multimodal_risk_score": 95,
+    "risk_level": "high_risk_suspected",
+    "is_financial_impersonation": true,
+    "impersonated_brand": "kakaobank",
+    "brand_category": "bank",
+    "attack_type": "credential_theft",
+    "detected_elements": [
+      "bank_logo",
+      "login_form",
+      "account_input",
+      "otp_input",
+      "personal_information_input"
+    ],
+    "reasons": [
+      {
+        "code": "SUSPICIOUS_URL_DOMAIN",
+        "description": "공식 카카오뱅크 도메인이 아닌 외부 도메인(kakaobank-security.example, auth-kakaobank.example)을 사용하고 있습니다."
+      },
+      {
+        "code": "UNAUTHORIZED_DATA_COLLECTION",
+        "description": "계좌 비밀번호 및 인증번호 등 민감한 금융 정보를 비정상적인 외부 서버로 전송하도록 설계된 폼이 존재합니다."
+      },
+      {
+        "code": "SOCIAL_ENGINEERING_TACTIC",
+        "description": "이상거래 감지라는 명목으로 심리적 불안감을 조성하여 본인인증 정보를 탈취하려는 피싱 수법을 사용하고 있습니다."
+      }
+    ],
+    "confidence": 0.98
+  },
+  "model_name": "gemini-3.1-flash-lite-preview",
+  "prompt_version": "mm_prompt_v1"
+}

@@ -1,0 +1,25 @@
+{
+  "analysis_id": "non_financial_001",
+  "status": "completed",
+  "multimodal_result": {
+    "multimodal_risk_score": 10,
+    "risk_level": "low",
+    "is_financial_impersonation": false,
+    "impersonated_brand": "none",
+    "brand_category": "unknown",
+    "attack_type": "unknown",
+    "detected_elements": [
+      "login_form",
+      "game_logo"
+    ],
+    "reasons": [
+      {
+        "code": "NON_FINANCIAL_CONTENT",
+        "description": "해당 웹페이지는 금융기관이 아닌 게임 서비스(별빛용사)의 이벤트 페이지로 확인되며, 금융 정보 탈취를 목적으로 하는 요소가 발견되지 않았습니다."
+      }
+    ],
+    "confidence": 0.95
+  },
+  "model_name": "gemini-3.1-flash-lite-preview",
+  "prompt_version": "mm_prompt_v1"
+}

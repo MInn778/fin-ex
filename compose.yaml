@@ -1,5 +1,22 @@
 name: fin-der
 
-# 각 서비스 구현 시 build, ports, environment, depends_on을 추가합니다.
-services: {}
+# backend/frontend는 아직 Dockerfile이 없어 로컬(mvn/npm)로 실행합니다.
+# 컨테이너화되면 여기에 build/ports/depends_on을 추가합니다.
+services:
+  database:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${DATABASE_NAME}
+      MYSQL_USER: ${DATABASE_USER}
+      MYSQL_PASSWORD: ${DATABASE_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - database_data:/var/lib/mysql
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+
+volumes:
+  database_data:
 

@@ -1,0 +1,5 @@
+name: fin-der
+
+# 각 서비스 구현 시 build, ports, environment, depends_on을 추가합니다.
+services: {}
+

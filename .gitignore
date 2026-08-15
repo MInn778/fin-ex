@@ -1,0 +1,52 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Python / ML
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+ml-service/artifacts/*
+!ml-service/artifacts/.gitkeep
+ml-service/data/*
+!ml-service/data/.gitkeep
+*.joblib
+*.pkl
+*.onnx
+
+# Node / React
+node_modules/
+dist/
+build/
+coverage/
+
+# Java / Spring
+.gradle/
+target/
+*.class
+
+# Playwright
+playwright-report/
+test-results/
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+

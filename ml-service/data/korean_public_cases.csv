@@ -1,0 +1,5 @@
+case_id,pattern,label,source,note
+kr-case-001,금융기관 보안 인증을 사칭해 계좌 비밀번호 또는 보안카드 입력을 요구,1,public_case_summary,국내 금융 피싱 설명용 패턴
+kr-case-002,정상 금융기관 브랜드명을 URL 하위 경로나 서브도메인에 삽입하고 공식 도메인은 사용하지 않음,1,public_case_summary,브랜드-도메인 불일치 근거
+kr-case-003,긴급 점검 보상 환급 대출 승인 등 사용자의 즉시 행동을 유도하는 문구 사용,1,public_case_summary,사회공학 문구 보강
+kr-case-004,단축 URL 또는 IP 주소 기반 링크로 금융 로그인 페이지 접속 유도,1,public_case_summary,URL 구조 위험 신호

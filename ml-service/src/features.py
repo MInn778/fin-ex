@@ -8,6 +8,8 @@ import re
 from collections import Counter
 from urllib.parse import parse_qsl, unquote, urlsplit
 
+from .domain_rules import analyze_financial_domain
+
 SUSPICIOUS_TLDS = {
     "buzz", "click", "country", "fit", "gq", "info", "kim", "link",
     "ml", "online", "rest", "support", "tk", "top", "work", "xyz",
@@ -26,6 +28,7 @@ FEATURE_NAMES = [
     "url_entropy", "subdomain_depth", "query_param_count", "percent_encoding_count",
     "has_ip_host", "has_punycode", "has_at_symbol", "uses_https",
     "uses_nonstandard_port", "has_suspicious_tld", "has_financial_term", "uses_shortener",
+    "official_financial_domain", "brand_domain_mismatch", "brand_domain_similarity",
 ]
 
 
@@ -62,6 +65,7 @@ def extract_features(raw_url: str) -> dict[str, float]:
     subdomain_depth = max(0, len(labels) - 2)
     tld = labels[-1] if labels else ""
     decoded = unquote(url).lower()
+    domain = analyze_financial_domain(raw_url)
     alnum = sum(character.isalnum() for character in url)
     digits = sum(character.isdigit() for character in url)
     special = len(url) - alnum
@@ -93,10 +97,12 @@ def extract_features(raw_url: str) -> dict[str, float]:
         "has_suspicious_tld": float(tld in SUSPICIOUS_TLDS),
         "has_financial_term": float(any(term in decoded for term in FINANCIAL_TERMS)),
         "uses_shortener": float(hostname in SHORTENERS),
+        "official_financial_domain": float(domain["official_domain_match"]),
+        "brand_domain_mismatch": float(domain["brand_domain_mismatch"]),
+        "brand_domain_similarity": float(domain["brand_domain_similarity"]),
     }
 
 
 def feature_vector(raw_url: str) -> list[float]:
     features = extract_features(raw_url)
     return [features[name] for name in FEATURE_NAMES]
-

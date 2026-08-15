@@ -24,8 +24,11 @@ __pycache__/
 venv/
 ml-service/artifacts/*
 !ml-service/artifacts/.gitkeep
-ml-service/data/*
+ml-service/data/raw/*
+ml-service/data/processed/*
 !ml-service/data/.gitkeep
+!ml-service/data/raw/.gitkeep
+!ml-service/data/processed/.gitkeep
 *.joblib
 *.pkl
 *.onnx

@@ -48,4 +48,20 @@ public class WebClientConfig {
                 .baseUrl(dbApiBaseUrl)
                 .build();
     }
+
+    @Bean
+    public WebClient multimodalWebClient(
+            @Value("${multimodal-service.base-url}") String multimodalBaseUrl
+    ) {
+        ExchangeStrategies strategies = ExchangeStrategies.builder()
+                .codecs(configurer ->
+                        configurer.defaultCodecs().maxInMemorySize(25 * 1024 * 1024)
+                )
+                .build();
+
+        return WebClient.builder()
+                .baseUrl(multimodalBaseUrl)
+                .exchangeStrategies(strategies)
+                .build();
+    }
 }

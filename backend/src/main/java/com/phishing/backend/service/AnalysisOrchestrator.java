@@ -5,6 +5,8 @@ import com.phishing.backend.dto.AnalysisResult;
 import com.phishing.backend.dto.AnalyzeRequest;
 import com.phishing.backend.dto.DbApiSaveRequest;
 import com.phishing.backend.dto.MlServiceResponse;
+import com.phishing.backend.dto.MultimodalRequest;
+import com.phishing.backend.dto.MultimodalResponse;
 import com.phishing.backend.dto.SandboxResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -14,25 +16,33 @@ import java.time.Duration;
 
 /**
  * 1차 ML(ml-service)로 위험도를 계산하고, 정밀 분석이 필요한 URL만
- * Sandbox에서 Screenshot/HTML을 추가로 수집한 뒤 db-api에 최종 결과를 저장한다.
- * multimodal-service는 아직 HTTP API가 없어 이 체인에서는 제외되어 있다.
+ * Sandbox에서 Screenshot/HTML을 수집한 뒤 Multimodal(Gemini)로 사칭 여부를
+ * 판단하고, db-api에 최종 결과를 저장한다.
+ *
+ * multimodal-service는 GEMINI_API_KEY가 없으면 503을 반환하는데, 이 경우에도
+ * 파이프라인 전체가 죽지 않도록 하고 ml-service 판정만으로 finalResult를 정한다.
+ * ml/multimodal을 합치는 규칙은 임시(OR 방식)이며, 정식 가중치 로직은
+ * 3주차에 XAI 담당이 정하기로 되어 있다.
  */
 @Service
 public class AnalysisOrchestrator {
 
     private final WebClient mlServiceWebClient;
     private final WebClient dbApiWebClient;
+    private final WebClient multimodalWebClient;
     private final SandboxService sandboxService;
     private final ObjectMapper objectMapper;
 
     public AnalysisOrchestrator(
             WebClient mlServiceWebClient,
             WebClient dbApiWebClient,
+            WebClient multimodalWebClient,
             SandboxService sandboxService,
             ObjectMapper objectMapper
     ) {
         this.mlServiceWebClient = mlServiceWebClient;
         this.dbApiWebClient = dbApiWebClient;
+        this.multimodalWebClient = multimodalWebClient;
         this.sandboxService = sandboxService;
         this.objectMapper = objectMapper;
     }
@@ -45,17 +55,40 @@ public class AnalysisOrchestrator {
                 .bodyToMono(MlServiceResponse.class)
                 .timeout(Duration.ofSeconds(15))
                 .flatMap(mlResult -> attachSandbox(request, mlResult))
+                .flatMap(this::attachMultimodal)
                 .flatMap(this::persist);
     }
 
     private Mono<CombinedResult> attachSandbox(AnalyzeRequest request, MlServiceResponse mlResult) {
         if (!mlResult.requiresDeepAnalysis()) {
-            return Mono.just(new CombinedResult(mlResult, null, "not_required"));
+            return Mono.just(new CombinedResult(mlResult, null, "not_required", null, null));
         }
 
         return sandboxService.analyze(request)
-                .map(sandbox -> new CombinedResult(mlResult, sandbox, null))
-                .onErrorResume(error -> Mono.just(new CombinedResult(mlResult, null, error.getMessage())));
+                .map(sandbox -> new CombinedResult(mlResult, sandbox, null, null, null))
+                .onErrorResume(error -> Mono.just(new CombinedResult(mlResult, null, error.getMessage(), null, null)));
+    }
+
+    private Mono<CombinedResult> attachMultimodal(CombinedResult combined) {
+        if (combined.sandbox == null || combined.sandbox.screenshotBase64() == null) {
+            return Mono.just(combined);
+        }
+
+        MultimodalRequest multimodalRequest = new MultimodalRequest(
+                combined.ml.url(),
+                combined.sandbox.finalUrl(),
+                combined.sandbox.screenshotBase64(),
+                combined.sandbox.html()
+        );
+
+        return multimodalWebClient.post()
+                .uri("/v1/analyze")
+                .bodyValue(multimodalRequest)
+                .retrieve()
+                .bodyToMono(MultimodalResponse.class)
+                .timeout(Duration.ofSeconds(30))
+                .map(multimodal -> combined.withMultimodal(multimodal, null))
+                .onErrorResume(error -> Mono.just(combined.withMultimodal(null, error.getMessage())));
     }
 
     private Mono<AnalysisResult> persist(CombinedResult combined) {
@@ -63,9 +96,9 @@ public class AnalysisOrchestrator {
                 combined.ml.url(),
                 combined.ml.riskScore(),
                 writeJson(combined.ml),
-                writeJson(sandboxSummary(combined)),
+                writeJson(multimodalSummary(combined)),
                 writeJson(combined.ml.xaiReasons()),
-                combined.ml.label()
+                combineFinalResult(combined)
         );
 
         return dbApiWebClient.post()
@@ -76,7 +109,22 @@ public class AnalysisOrchestrator {
                 .timeout(Duration.ofSeconds(10));
     }
 
-    private SandboxSummary sandboxSummary(CombinedResult combined) {
+    private String combineFinalResult(CombinedResult combined) {
+        if (combined.multimodal == null || combined.multimodal.multimodalResult() == null) {
+            return combined.ml.label();
+        }
+
+        MultimodalResponse.Result result = combined.multimodal.multimodalResult();
+        boolean multimodalHighRisk = result.isFinancialImpersonation()
+                || "high_risk_suspected".equalsIgnoreCase(result.riskLevel());
+
+        return multimodalHighRisk ? "PHISHING" : combined.ml.label();
+    }
+
+    private Object multimodalSummary(CombinedResult combined) {
+        if (combined.multimodal != null) {
+            return combined.multimodal;
+        }
         if (combined.sandbox == null) {
             return new SandboxSummary(false, null, null, combined.sandboxError);
         }
@@ -84,7 +132,7 @@ public class AnalysisOrchestrator {
                 true,
                 combined.sandbox.htmlSizeBytes(),
                 combined.sandbox.screenshotSizeBytes(),
-                combined.sandbox.error()
+                combined.multimodalError != null ? combined.multimodalError : combined.sandbox.error()
         );
     }
 
@@ -96,7 +144,16 @@ public class AnalysisOrchestrator {
         }
     }
 
-    private record CombinedResult(MlServiceResponse ml, SandboxResponse sandbox, String sandboxError) {
+    private record CombinedResult(
+            MlServiceResponse ml,
+            SandboxResponse sandbox,
+            String sandboxError,
+            MultimodalResponse multimodal,
+            String multimodalError
+    ) {
+        CombinedResult withMultimodal(MultimodalResponse multimodal, String multimodalError) {
+            return new CombinedResult(ml, sandbox, sandboxError, multimodal, multimodalError);
+        }
     }
 
     private record SandboxSummary(

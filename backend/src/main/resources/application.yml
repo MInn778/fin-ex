@@ -9,3 +9,6 @@ ml-service:
 
 db-api:
   base-url: ${DB_API_BASE_URL:http://localhost:8081}
+
+multimodal-service:
+  base-url: ${MULTIMODAL_SERVICE_BASE_URL:http://localhost:8002}

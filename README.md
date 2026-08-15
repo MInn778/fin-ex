@@ -16,7 +16,8 @@
 | 경로 | 역할 |
 | --- | --- |
 | `frontend/` | React 사용자 화면 |
-| `backend/` | Spring Boot 통합 API |
+| `backend/` | Spring Boot 오케스트레이터 (Sandbox 호출) |
+| `db-api/` | Spring Boot, MySQL 저장/조회 API (`/api/analyze`, `/api/reports`) — `backend/`와 역할 정리 필요, 논의 중 |
 | `sandbox/` | Playwright 및 Chromium 격리 분석 |
 | `ml-service/` | XGBoost, SHAP, 금융기관 도메인 규칙 기반 1차 분석 |
 | `multimodal-service/` | 스크린샷 및 HTML 기반 2차 분석 |

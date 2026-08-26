@@ -7,27 +7,14 @@ import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record MultimodalResponse(
-        @JsonProperty("analysis_id") String analysisId,
-        String status,
-        @JsonProperty("multimodal_result") Result multimodalResult,
-        @JsonProperty("model_name") String modelName,
-        @JsonProperty("prompt_version") String promptVersion
+        String verdict,
+        @JsonProperty("risk_score") Integer riskScore,
+        @JsonProperty("impersonation_type") String impersonationType,
+        @JsonProperty("impersonated_brand") String impersonatedBrand,
+        @JsonProperty("credential_request") boolean credentialRequest,
+        @JsonProperty("financial_action_request") boolean financialActionRequest,
+        @JsonProperty("app_install_request") boolean appInstallRequest,
+        @JsonProperty("external_contact_request") boolean externalContactRequest,
+        List<String> evidence
 ) {
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Result(
-            @JsonProperty("multimodal_risk_score") Integer riskScore,
-            @JsonProperty("risk_level") String riskLevel,
-            @JsonProperty("is_financial_impersonation") boolean isFinancialImpersonation,
-            @JsonProperty("impersonated_brand") String impersonatedBrand,
-            @JsonProperty("brand_category") String brandCategory,
-            @JsonProperty("attack_type") String attackType,
-            @JsonProperty("detected_elements") List<String> detectedElements,
-            List<Reason> reasons,
-            Double confidence
-    ) {
-    }
-
-    @JsonIgnoreProperties(ignoreUnknown = true)
-    public record Reason(String code, String description) {
-    }
 }

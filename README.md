@@ -88,6 +88,12 @@ python .\run_fixture_tests.py normal_bank non_financial fake_bank card_capital i
 
 키가 없으면 위 fixture 실행을 건너뛰고 API의 503 fallback을 smoke test로 검증합니다. 키 값 자체를 로그나 결과 파일에 기록하지 마십시오.
 
+## 멀티모달 HTTP 계약
+
+Backend가 호출할 컨테이너 URL은 `http://multimodal-service:8002/v1/analyze`, 호스트에서 직접 확인할 URL은 `http://localhost:8002/v1/analyze`입니다. API는 Sandbox의 `requestedUrl`, `finalUrl`, `statusCode`, `title`, `html`, `screenshotBase64`, `error`를 그대로 받을 수 있으며 HTML에서 visible text, forms, buttons, links와 download 신호를 안전하게 추출합니다.
+
+응답은 `verdict`, `risk_score`, `impersonation_type`, `impersonated_brand`, 네 가지 요청 여부 boolean, 한국어 `evidence` 배열로 구성됩니다. Screenshot과 HTML/Text가 모두 없거나 Sandbox 수집 실패만 전달되면 `NORMAL`이 아닌 `UNKNOWN`을 반환합니다. 세부 요청·응답과 오류 코드는 [multimodal-service/README.md](multimodal-service/README.md)를 확인하십시오.
+
 ## 안전 원칙
 
 - 실제 피싱 URL에는 접속하지 않습니다.

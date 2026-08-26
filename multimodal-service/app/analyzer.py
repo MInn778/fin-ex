@@ -1,13 +1,18 @@
 import json
-from preprocessor import preprocess_input
 from pathlib import Path
 
-from google import genai
 from PIL import Image
 
-from prompt_builder import build_analysis_prompt
-from response_parser import parse_multimodal_response
-from config import Settings
+try:
+    from .config import Settings
+    from .preprocessor import preprocess_input
+    from .prompt_builder import build_analysis_prompt
+    from .response_parser import parse_multimodal_response
+except ImportError:  # Direct script/fixture execution from app/.
+    from config import Settings
+    from preprocessor import preprocess_input
+    from prompt_builder import build_analysis_prompt
+    from response_parser import parse_multimodal_response
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,20 +36,23 @@ def analyze(input_data: dict) -> dict:
     if not api_key:
         raise ValueError("GEMINI_API_KEY 환경변수가 설정되어 있지 않습니다.")
 
-    # 4. Gemini 클라이언트 생성
+    # 4. Gemini 클라이언트 생성 (API 모듈은 키/SDK 없이도 health가 뜰 수 있다.)
+    from google import genai
+
     client = genai.Client(api_key=api_key)
 
-    # 5. 스크린샷 이미지 읽기
-    screenshot_path = processed_input["screenshot_path"]
-    image = Image.open(screenshot_path)
+    # 5. fixture의 screenshot_path는 유지하고, HTML-only 요청도 허용한다.
+    contents = [system_prompt + "\n\n" + prompt]
+    screenshot_path = processed_input.get("screenshot_path")
+    if screenshot_path:
+        with Image.open(screenshot_path) as source_image:
+            source_image.load()
+            contents.append(source_image.copy())
 
     # 6. Gemini에 텍스트 + 이미지 함께 전달
     response = client.models.generate_content(
         model=current_settings.gemini_model,
-        contents=[
-            system_prompt + "\n\n" + prompt,
-            image
-        ]
+        contents=contents,
     )
 
     # 7. Gemini 응답 가져오기

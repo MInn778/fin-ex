@@ -70,15 +70,18 @@ public class AnalysisOrchestrator {
     }
 
     private Mono<CombinedResult> attachMultimodal(CombinedResult combined) {
-        if (combined.sandbox == null || combined.sandbox.screenshotBase64() == null) {
+        if (combined.sandbox == null) {
             return Mono.just(combined);
         }
 
         MultimodalRequest multimodalRequest = new MultimodalRequest(
-                combined.ml.url(),
+                combined.sandbox.requestedUrl(),
                 combined.sandbox.finalUrl(),
+                combined.sandbox.statusCode(),
+                combined.sandbox.title(),
+                combined.sandbox.html(),
                 combined.sandbox.screenshotBase64(),
-                combined.sandbox.html()
+                combined.sandbox.error()
         );
 
         return multimodalWebClient.post()
@@ -110,13 +113,11 @@ public class AnalysisOrchestrator {
     }
 
     private String combineFinalResult(CombinedResult combined) {
-        if (combined.multimodal == null || combined.multimodal.multimodalResult() == null) {
+        if (combined.multimodal == null) {
             return combined.ml.label();
         }
 
-        MultimodalResponse.Result result = combined.multimodal.multimodalResult();
-        boolean multimodalHighRisk = result.isFinancialImpersonation()
-                || "high_risk_suspected".equalsIgnoreCase(result.riskLevel());
+        boolean multimodalHighRisk = "PHISHING".equalsIgnoreCase(combined.multimodal.verdict());
 
         return multimodalHighRisk ? "PHISHING" : combined.ml.label();
     }

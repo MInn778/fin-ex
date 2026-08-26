@@ -15,14 +15,15 @@ DEFAULT_FIXTURES = (
     "government_support",
 )
 REQUIRED_RESULT_FIELDS = (
-    "multimodal_risk_score",
-    "risk_level",
-    "is_financial_impersonation",
+    "verdict",
+    "risk_score",
+    "impersonation_type",
     "impersonated_brand",
-    "brand_category",
-    "attack_type",
-    "confidence",
-    "reasons",
+    "credential_request",
+    "financial_action_request",
+    "app_install_request",
+    "external_contact_request",
+    "evidence",
 )
 
 
@@ -54,15 +55,8 @@ def load_fixture(fixture_name: str) -> dict:
 
 
 def validate_result(result: dict) -> None:
-    if "analysis_id" not in result:
-        raise ValueError("분석 결과에 analysis_id가 없습니다.")
-
-    multimodal_result = result.get("multimodal_result")
-    if not isinstance(multimodal_result, dict):
-        raise ValueError("분석 결과에 multimodal_result 객체가 없습니다.")
-
     missing_fields = [
-        field for field in REQUIRED_RESULT_FIELDS if field not in multimodal_result
+        field for field in REQUIRED_RESULT_FIELDS if field not in result
     ]
     if missing_fields:
         raise ValueError(
@@ -76,10 +70,7 @@ def run_fixture(fixture_name: str, results_dir: Path) -> Path:
     validate_result(result)
 
     if fixture_name in {"normal_bank", "non_financial"}:
-        multimodal_result = result["multimodal_result"]
-        if multimodal_result["is_financial_impersonation"]:
-            raise ValueError(f"{fixture_name} fixture was falsely classified as financial impersonation")
-        if str(multimodal_result["risk_level"]).lower() == "high_risk_suspected":
+        if result["verdict"] == "PHISHING":
             raise ValueError(f"{fixture_name} fixture was falsely classified as high risk")
 
     results_dir.mkdir(parents=True, exist_ok=True)

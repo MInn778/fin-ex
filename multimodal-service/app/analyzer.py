@@ -1,5 +1,4 @@
 import json
-import os
 from preprocessor import preprocess_input
 from pathlib import Path
 
@@ -8,6 +7,7 @@ from PIL import Image
 
 from prompt_builder import build_analysis_prompt
 from response_parser import parse_multimodal_response
+from config import Settings
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -21,14 +21,12 @@ def analyze(input_data: dict) -> dict:
     # 2. 분석 프롬프트 생성
     prompt = build_analysis_prompt(processed_input)
 
-    print("=== 생성된 분석 프롬프트 ===")
-    print(prompt)
-
     # 2. system prompt 읽기
     system_prompt = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 
     # 3. Gemini API 키 가져오기
-    api_key = os.getenv("GEMINI_API_KEY")
+    current_settings = Settings.from_env()
+    api_key = current_settings.gemini_api_key
 
     if not api_key:
         raise ValueError("GEMINI_API_KEY 환경변수가 설정되어 있지 않습니다.")
@@ -42,7 +40,7 @@ def analyze(input_data: dict) -> dict:
 
     # 6. Gemini에 텍스트 + 이미지 함께 전달
     response = client.models.generate_content(
-        model="gemini-3.1-flash-lite-preview",
+        model=current_settings.gemini_model,
         contents=[
             system_prompt + "\n\n" + prompt,
             image
@@ -51,9 +49,6 @@ def analyze(input_data: dict) -> dict:
 
     # 7. Gemini 응답 가져오기
     response_text = response.text
-
-    print("\n=== Gemini 원본 응답 ===")
-    print(response_text)
 
     # 8. JSON 응답 파싱
     result = parse_multimodal_response(response_text)

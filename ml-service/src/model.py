@@ -22,15 +22,18 @@ REASON_LABELS = {
     "url_entropy": "무작위성이 높은 URL 문자열",
     "subdomain_depth": "과도한 서브도메인 깊이",
     "query_param_count": "다수의 쿼리 파라미터",
-    "percent_encoding_count": "반복된 URL 인코딩",
+    "percent_encoding_count": "반복적인 URL 인코딩",
     "has_ip_host": "도메인 대신 IP 주소 사용",
     "has_punycode": "유사문자 공격에 쓰일 수 있는 Punycode",
     "has_at_symbol": "URL 내 @ 기호 사용",
     "uses_https": "HTTPS 사용 여부",
     "uses_nonstandard_port": "비표준 포트 사용",
-    "has_suspicious_tld": "위험 사례가 많은 최상위 도메인",
+    "has_suspicious_tld": "피싱에 자주 쓰이는 최상위 도메인",
     "has_financial_term": "금융기관 관련 키워드 포함",
     "uses_shortener": "단축 URL 서비스 사용",
+    "official_financial_domain": "등록된 금융기관 공식 도메인 여부",
+    "brand_domain_mismatch": "금융 브랜드명과 공식 도메인의 불일치",
+    "brand_domain_similarity": "공식 도메인과 유사한 철자 구조",
 }
 
 
@@ -77,4 +80,3 @@ class UrlRiskModel:
             }
             for index, value in ranked[:5]
         ]
-

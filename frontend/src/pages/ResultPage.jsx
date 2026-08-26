@@ -69,13 +69,15 @@ function safeParseReasons(xaiResult) {
   }
 }
 
-// db-api 목업은 문자열 배열("HTTPS 미사용"), ml-service는 SHAP 근거 객체
-// ({ feature, reason, direction, contribution })를 준다. 둘 다 지원한다.
+// db-api 목업의 문자열 배열과 ML 서비스의 SHAP 근거 객체를 모두 표시한다.
 function formatReason(reason) {
   if (typeof reason === "string") return reason;
   if (reason && typeof reason === "object" && reason.reason) {
-    const arrow = reason.direction === "RISK_UP" ? "▲" : "▼";
-    return `${reason.reason} ${arrow}`;
+    const arrow = reason.direction === "RISK_UP" ? "↑" : "↓";
+    const contribution = Number.isFinite(reason.contribution)
+      ? ` (${reason.contribution.toFixed(4)})`
+      : "";
+    return `${reason.reason} ${arrow}${contribution}`;
   }
   return JSON.stringify(reason);
 }

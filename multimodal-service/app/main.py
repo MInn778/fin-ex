@@ -7,26 +7,18 @@ GEMINI_API_KEY가 없으면 503을 반환한다 - 가짜 결과를 만들어 AI 
 
 import base64
 import binascii
-import os
 import tempfile
 import uuid
 from pathlib import Path
 
 from bs4 import BeautifulSoup
 from fastapi import FastAPI, HTTPException
-from pydantic import BaseModel, Field
 
 from analyzer import analyze
+from config import Settings
+from schemas import AnalyzeRequest
 
 app = FastAPI(title="fin-der Multimodal Service", version="1.0.0")
-
-
-class AnalyzeRequest(BaseModel):
-    url: str = Field(min_length=1)
-    final_url: str | None = None
-    screenshot_base64: str = Field(min_length=1)
-    html: str = ""
-    forms: list[dict] = Field(default_factory=list)
 
 
 def extract_page_text(html: str) -> str:
@@ -37,12 +29,14 @@ def extract_page_text(html: str) -> str:
 
 @app.get("/health")
 def health() -> dict[str, object]:
-    return {"status": "ok", "gemini_api_key_configured": bool(os.getenv("GEMINI_API_KEY"))}
+    current_settings = Settings.from_env()
+    return {"status": "ok", "gemini_api_key_configured": current_settings.gemini_api_key is not None}
 
 
 @app.post("/v1/analyze")
 def analyze_endpoint(request: AnalyzeRequest) -> dict[str, object]:
-    if not os.getenv("GEMINI_API_KEY"):
+    current_settings = Settings.from_env()
+    if current_settings.gemini_api_key is None:
         raise HTTPException(
             status_code=503,
             detail="GEMINI_API_KEY가 설정되어 있지 않습니다. 실제 Gemini 분석 없이는 결과를 만들지 않습니다.",
@@ -52,6 +46,9 @@ def analyze_endpoint(request: AnalyzeRequest) -> dict[str, object]:
         screenshot_bytes = base64.b64decode(request.screenshot_base64, validate=True)
     except (binascii.Error, ValueError) as error:
         raise HTTPException(status_code=422, detail=f"screenshot_base64 디코딩 실패: {error}") from error
+
+    if len(screenshot_bytes) > current_settings.max_screenshot_bytes:
+        raise HTTPException(status_code=413, detail="Decoded screenshot exceeds the configured size limit")
 
     tmp_path = Path(tempfile.gettempdir()) / f"multimodal-{uuid.uuid4().hex}.png"
     try:

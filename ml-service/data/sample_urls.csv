@@ -1,0 +1,8 @@
+url,label,source,note
+https://www.kbstar.com/,0,official_registry,정상 공식 도메인
+https://www.shinhan.com/index.jsp,0,official_registry,정상 공식 도메인
+https://www.kakaobank.com/,0,official_registry,정상 공식 도메인
+http://kb-login-security.xyz/verify?id=1004,1,synthetic_demo,브랜드 키워드와 의심 TLD 결합
+http://shinhan.secure-auth.top/account/update,1,synthetic_demo,공식 도메인이 아닌 금융기관 사칭 구조
+http://183.111.12.34/woori/login?card=verify,1,synthetic_demo,IP 기반 호스트와 금융 키워드 결합
+http://xn--kbstar-secure-9za.click/login,1,synthetic_demo,punycode와 의심 TLD 결합

@@ -119,26 +119,62 @@ class AnalyzeRequest(SandboxModel):
 class AnalyzeResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
+    analysisId: str
+    pageRiskScore: int = Field(ge=0, le=100, strict=True)
     verdict: Verdict
-    risk_score: int = Field(ge=0, le=100, strict=True)
-    impersonation_type: ImpersonationType
-    impersonated_brand: str | None
-    credential_request: bool = Field(strict=True)
-    financial_action_request: bool = Field(strict=True)
-    app_install_request: bool = Field(strict=True)
-    external_contact_request: bool = Field(strict=True)
-    evidence: list[str]
+
+    impersonation: "ImpersonationResult"
+    credentialIntent: "CredentialIntentResult"
+    domainAnalysis: "DomainAnalysisResult"
+    behaviorAnalysis: "BehaviorAnalysisResult"
+    detectedSignals: list[str]
+    reasons: list[str]
+    confidence: float = Field(ge=0.0, le=1.0)
 
 
-def unknown_response(reason: str) -> AnalyzeResponse:
+class ImpersonationResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    detected: bool = Field(strict=True)
+    brand: str | None
+    category: str | None
+
+
+class CredentialIntentResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    detected: bool = Field(strict=True)
+    types: list[str]
+
+
+class DomainAnalysisResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    currentDomain: str | None
+    officialDomains: list[str]
+    domainBrandMismatch: bool = Field(strict=True)
+
+
+class BehaviorAnalysisResult(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    financialActionRequest: bool = Field(strict=True)
+    externalContactRequest: bool = Field(strict=True)
+    downloadRequest: bool = Field(strict=True)
+
+
+def unknown_response(reason: str, analysis_id: str | None = None) -> AnalyzeResponse:
     return AnalyzeResponse(
+        analysisId=analysis_id or "unknown",
+        pageRiskScore=0,
         verdict="UNKNOWN",
-        risk_score=0,
-        impersonation_type="UNKNOWN",
-        impersonated_brand=None,
-        credential_request=False,
-        financial_action_request=False,
-        app_install_request=False,
-        external_contact_request=False,
-        evidence=[reason],
+        impersonation=ImpersonationResult(detected=False, brand=None, category=None),
+        credentialIntent=CredentialIntentResult(detected=False, types=[]),
+        domainAnalysis=DomainAnalysisResult(
+            currentDomain=None, officialDomains=[], domainBrandMismatch=False
+        ),
+        behaviorAnalysis=BehaviorAnalysisResult(
+            financialActionRequest=False,
+            externalContactRequest=False,
+            downloadRequest=False,
+        ),
+        detectedSignals=[],
+        reasons=[reason],
+        confidence=0.0,
     )

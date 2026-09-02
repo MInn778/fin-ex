@@ -24,4 +24,7 @@
 [buttons_links_downloads]
 {dom_signals}
 
-URL은 공식 도메인 여부와 리디렉션 맥락을 판단하는 근거로만 사용하고 1차 URL 모델의 역할을 재현하지 마십시오. 화면·문구·DOM의 실제 증거를 함께 비교하여 최신 JSON 계약으로만 반환하십시오.
+[deterministic_rule_analysis]
+{rule_analysis}
+
+rule_analysis를 객관적 사실 원천으로 유지하면서 화면·문구의 의미 문맥만 해석해 semantic JSON 계약으로 반환하십시오.

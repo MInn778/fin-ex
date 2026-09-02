@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import logging
 import tempfile
 import uuid
 from pathlib import Path
@@ -16,14 +17,17 @@ try:
     from .analyzer import analyze
     from .config import Settings
     from .dom_risk_analyzer import analyze_dom_risk
+    from .risk_fusion import fuse_analysis
     from .schemas import AnalyzeRequest, AnalyzeResponse, unknown_response
 except ImportError:  # Uvicorn started from app/ as used by the Dockerfile.
     from analyzer import analyze
     from config import Settings
     from dom_risk_analyzer import analyze_dom_risk
+    from risk_fusion import fuse_analysis
     from schemas import AnalyzeRequest, AnalyzeResponse, unknown_response
 
 app = FastAPI(title="fin-der Multimodal Service", version="2.0.0")
+logger = logging.getLogger(__name__)
 
 
 def _clean_text(value: str) -> str:
@@ -136,6 +140,7 @@ def health() -> dict[str, object]:
 @app.post("/v1/analyze", response_model=AnalyzeResponse)
 def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
     current_settings = Settings.from_env()
+    analysis_id = request.analysis_id or uuid.uuid4().hex
     title = request.page.title if request.page and request.page.title else request.title
     html = request.page.html if request.page and request.page.html else request.html
     visible_text = (
@@ -150,14 +155,15 @@ def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
 
     if not has_screenshot and not has_document:
         if request.error:
-            return unknown_response(f"Sandbox 수집 실패로 분석할 수 없습니다: {request.error}")
-        return unknown_response("Screenshot과 HTML/Text가 없어 페이지를 분석할 수 없습니다.")
-
-    if current_settings.gemini_api_key is None:
-        raise HTTPException(
-            status_code=503,
-            detail="GEMINI_API_KEY가 설정되어 있지 않아 Gemini 분석을 수행할 수 없습니다.",
-        )
+            return unknown_response(
+                f"페이지 정보를 충분히 수집하지 못해 위험 여부를 판단할 수 없습니다: {request.error}",
+                analysis_id,
+            )
+        if not (request.inputs or request.forms or request.links):
+            return unknown_response(
+                "페이지 정보를 충분히 수집하지 못해 위험 여부를 판단할 수 없습니다.",
+                analysis_id,
+            )
 
     final_url = request.final_url or request.requested_url or ""
     dom = extract_dom_context(html, final_url)
@@ -178,7 +184,7 @@ def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
         forms = [item.model_dump() for item in request.forms] or dom["forms"]
         links = [item.model_dump() for item in request.links] or dom["links"]
         input_data = {
-            "analysis_id": request.analysis_id or uuid.uuid4().hex,
+            "analysis_id": analysis_id,
             "original_url": request.requested_url or final_url,
             "final_url": final_url,
             "status_code": request.status_code,
@@ -201,13 +207,35 @@ def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
             },
         }
         input_data["rule_analysis"] = analyze_dom_risk(input_data)
-        return AnalyzeResponse.model_validate(analyze(input_data))
+        semantic_analysis = None
+        if current_settings.gemini_api_key is not None:
+            try:
+                semantic_analysis = analyze(input_data)
+            except Exception as semantic_error:
+                # Deterministic facts can still produce a degraded rule-only result.
+                logger.warning("Gemini semantic analysis unavailable; using rule-only fusion: %s", semantic_error)
+                semantic_analysis = None
+        collection_status = {
+            "analysis_id": analysis_id,
+            "html": html,
+            "visible_text": input_data["page_text"],
+            "inputs": inputs,
+            "forms": forms,
+            "links": links,
+            "status_code": request.status_code,
+            "error": request.error,
+            "screenshot": has_screenshot,
+            "semantic_available": semantic_analysis is not None,
+        }
+        return AnalyzeResponse.model_validate(
+            fuse_analysis(input_data["rule_analysis"], semantic_analysis, collection_status)
+        )
     except HTTPException:
         raise
     except Exception as error:
         raise HTTPException(
             status_code=502,
-            detail="Gemini 분석 또는 응답 검증에 실패했습니다.",
+            detail="페이지 분석 또는 응답 검증에 실패했습니다.",
         ) from error
     finally:
         if tmp_path is not None:

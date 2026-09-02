@@ -7,12 +7,12 @@ try:
     from .config import Settings
     from .preprocessor import preprocess_input
     from .prompt_builder import build_analysis_prompt
-    from .response_parser import parse_multimodal_response
+    from .response_parser import parse_semantic_response
 except ImportError:  # Direct script/fixture execution from app/.
     from config import Settings
     from preprocessor import preprocess_input
     from prompt_builder import build_analysis_prompt
-    from response_parser import parse_multimodal_response
+    from response_parser import parse_semantic_response
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -59,7 +59,7 @@ def analyze(input_data: dict) -> dict:
     response_text = response.text
 
     # 8. JSON 응답 파싱
-    result = parse_multimodal_response(response_text)
+    result = parse_semantic_response(response_text)
 
     return result
 

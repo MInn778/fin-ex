@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "app"))
 
-from response_parser import parse_multimodal_response
+from response_parser import parse_multimodal_response, parse_semantic_response
 
 
 def valid_response() -> dict:
@@ -73,3 +73,18 @@ def test_legacy_nested_response_is_adapted():
     assert result["verdict"] == "PHISHING"
     assert result["impersonation_type"] == "GOVERNMENT_SUPPORT"
     assert result["credential_request"] is True
+
+
+@pytest.mark.parametrize("risk", ["LOW", "MEDIUM", "HIGH"])
+def test_semantic_response_levels_parse(risk):
+    payload = {
+        "semanticRisk": risk, "impersonationContext": False,
+        "credentialHarvestingContext": False, "socialEngineeringContext": False,
+        "financialManipulationContext": False, "semanticEvidence": [], "confidence": 0.5,
+    }
+    assert parse_semantic_response(json.dumps(payload))["semanticRisk"] == risk
+
+
+def test_malformed_semantic_response_is_rejected():
+    with pytest.raises(ValueError, match="required schema"):
+        parse_semantic_response('{"semanticRisk":"EXTREME"}')

@@ -3,12 +3,33 @@
 import json
 import re
 
-from pydantic import ValidationError
+from typing import Literal
 
-try:
-    from .schemas import AnalyzeResponse
-except ImportError:  # Direct script/fixture execution from app/.
-    from schemas import AnalyzeResponse
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+
+class LegacyAnalyzeResponse(BaseModel):
+    """Compatibility contract for stored v1 Gemini outputs and fixtures."""
+    model_config = ConfigDict(extra="forbid")
+    verdict: Literal["NORMAL", "SUSPICIOUS", "PHISHING", "UNKNOWN"]
+    risk_score: int = Field(ge=0, le=100, strict=True)
+    impersonation_type: str
+    impersonated_brand: str | None
+    credential_request: bool = Field(strict=True)
+    financial_action_request: bool = Field(strict=True)
+    app_install_request: bool = Field(strict=True)
+    external_contact_request: bool = Field(strict=True)
+    evidence: list[str]
+
+
+class SemanticAnalysis(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    semanticRisk: Literal["LOW", "MEDIUM", "HIGH"]
+    impersonationContext: bool = Field(strict=True)
+    credentialHarvestingContext: bool = Field(strict=True)
+    socialEngineeringContext: bool = Field(strict=True)
+    financialManipulationContext: bool = Field(strict=True)
+    semanticEvidence: list[str]
+    confidence: float = Field(ge=0.0, le=1.0)
 
 
 def _contains_any(values: list[str], keywords: tuple[str, ...]) -> bool:
@@ -103,7 +124,7 @@ def parse_multimodal_response(response_text: str) -> dict:
         ) from error
 
     try:
-        validated = AnalyzeResponse.model_validate(_adapt_legacy_response(result))
+        validated = LegacyAnalyzeResponse.model_validate(_adapt_legacy_response(result))
     except ValidationError as error:
         missing = [
             ".".join(str(part) for part in item["loc"])
@@ -119,3 +140,18 @@ def parse_multimodal_response(response_text: str) -> dict:
         ) from error
 
     return validated.model_dump(mode="json")
+
+
+def parse_semantic_response(response_text: str) -> dict:
+    """Parse Gemini's bounded semantic-only result."""
+    if not isinstance(response_text, str) or not response_text.strip():
+        raise ValueError("Semantic response is empty")
+    cleaned = response_text.strip()
+    fenced = re.fullmatch(r"```(?:json)?\s*(.*?)\s*```", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    if fenced:
+        cleaned = fenced.group(1).strip()
+    try:
+        payload = json.loads(cleaned)
+        return SemanticAnalysis.model_validate(payload).model_dump(mode="json")
+    except (json.JSONDecodeError, ValidationError) as error:
+        raise ValueError("Semantic response does not match the required schema") from error

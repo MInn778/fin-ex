@@ -21,6 +21,9 @@ def build_analysis_prompt(input_data: dict) -> str:
         ensure_ascii=False,
         indent=2
     )
+    rule_analysis_text = json.dumps(
+        input_data.get("rule_analysis", {}), ensure_ascii=False, indent=2
+    )
 
     # 템플릿의 값을 실제 입력값으로 변경
     prompt = template.format(
@@ -32,6 +35,7 @@ def build_analysis_prompt(input_data: dict) -> str:
         html=input_data.get("html", ""),
         forms=forms_text,
         dom_signals=dom_signals_text,
+        rule_analysis=rule_analysis_text,
     )
 
     return prompt

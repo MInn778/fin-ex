@@ -1,16 +1,28 @@
 {
+  "analysisId": "AN-20260902-001",
+  "pageRiskScore": 100,
   "verdict": "PHISHING",
-  "risk_score": 92,
-  "impersonation_type": "POLICY_FUND",
-  "impersonated_brand": "서민금융진흥원",
-  "credential_request": true,
-  "financial_action_request": true,
-  "app_install_request": false,
-  "external_contact_request": true,
-  "evidence": [
-    "햇살론 특별승인 문구가 발견되었습니다.",
-    "주민등록번호 입력 필드가 발견되었습니다.",
-    "카카오톡 상담 유도 버튼이 발견되었습니다.",
-    "공식 도메인이 아닌 페이지에서 기관 로고를 사용합니다."
-  ]
+  "impersonation": {"detected": true, "brand": "KB국민은행", "category": "BANK"},
+  "credentialIntent": {"detected": true, "types": ["PASSWORD", "OTP"]},
+  "domainAnalysis": {
+    "currentDomain": "kb-secure.example",
+    "officialDomains": ["kbstar.com"],
+    "domainBrandMismatch": true
+  },
+  "behaviorAnalysis": {
+    "financialActionRequest": false,
+    "externalContactRequest": false,
+    "downloadRequest": false
+  },
+  "detectedSignals": [
+    "PASSWORD_FIELD", "OTP_FIELD", "BRAND_IMPERSONATION",
+    "BRAND_DOMAIN_MISMATCH", "URGENCY_MESSAGE", "ACCOUNT_SUSPENSION_MESSAGE"
+  ],
+  "reasons": [
+    "KB국민은행의 공식 도메인과 현재 접속 도메인이 일치하지 않습니다.",
+    "비밀번호와 OTP 인증번호 입력을 요구합니다.",
+    "계정 또는 계좌 이용 제한을 경고하는 문구가 확인되었습니다.",
+    "즉시 행동을 요구하는 긴급성 문구가 확인되었습니다."
+  ],
+  "confidence": 0.85
 }

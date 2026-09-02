@@ -1,0 +1,1 @@
+{"sampleId": "phish-external-form", "label": "PHISHING", "verdict": "SUSPICIOUS", "pageRiskScore": 41, "detectedSignals": ["PASSWORD_FIELD", "POST_FORM", "EXTERNAL_FORM_ACTION"], "reasons": ["비밀번호 입력 필드가 확인되었습니다.", "입력 정보가 현재 사이트와 다른 외부 도메인으로 전송될 수 있습니다."], "source": "internal_synthetic", "prediction": "SUSPICIOUS", "reviewType": "SUSPICIOUS"}

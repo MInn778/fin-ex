@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KB국민은행 보안인증센터 | 테스트 Fixture</title>
+<style>
+body{margin:0;font-family:Arial,sans-serif;background:#f4f6f8;color:#1f2937}
+.banner{background:#111827;color:#fff;text-align:center;padding:10px;font-size:13px}
+header{background:#fff;border-bottom:1px solid #e5e7eb;padding:20px}
+.wrap{max-width:980px;margin:auto}
+.brand{font-size:24px;font-weight:800}.brand b{color:#eab308}
+main{max-width:980px;margin:40px auto;padding:0 20px;display:grid;grid-template-columns:1.3fr .7fr;gap:24px}
+.card{background:#fff;border-radius:14px;padding:28px;box-shadow:0 8px 24px rgba(0,0,0,.06)}
+.alert{background:#fff7ed;border:1px solid #fdba74;padding:14px;border-radius:10px;margin:20px 0}
+label{display:block;margin:14px 0 7px;font-weight:700;font-size:14px}
+input{width:100%;padding:12px;border:1px solid #cbd5e1;border-radius:8px;box-sizing:border-box}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+button{width:100%;margin-top:20px;padding:13px;border:0;border-radius:8px;background:#eab308;font-weight:800}
+.notice{padding:12px 0;border-bottom:1px solid #eee;font-size:14px}
+.chat{display:inline-block;margin-top:18px;padding:10px 12px;background:#dcfce7;color:#166534;border-radius:8px;text-decoration:none;font-weight:700}
+.note{margin-top:18px;font-size:12px;color:#64748b;line-height:1.5}
+@media(max-width:760px){main{grid-template-columns:1fr}.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="banner">LOCAL SECURITY TEST FIXTURE — 실제 금융기관 페이지가 아니며 입력값은 전송되지 않습니다.</div>
+<header><div class="wrap"><div class="brand"><b>KB</b>국민은행 보안인증센터</div><div>고객님의 안전한 금융거래를 위한 인증 서비스</div></div></header>
+<main>
+<section class="card">
+<h1>금융거래 보안인증</h1>
+<p>비정상 접속이 감지되어 추가 본인인증이 필요합니다.</p>
+<div class="alert"><strong>긴급 보안 안내</strong><br>오늘 자정까지 인증하지 않으면 인터넷뱅킹 이용이 일시 제한될 수 있습니다.</div>
+<form id="securityForm" method="post" action="/verify">
+<label>인터넷뱅킹 아이디</label>
+<input name="user_id" type="text" placeholder="아이디 입력">
+<label>인터넷뱅킹 비밀번호</label>
+<input name="password" type="password" placeholder="비밀번호 입력">
+<div class="row">
+<div><label>OTP / 인증번호</label><input name="otp" type="text" inputmode="numeric" placeholder="6자리 인증번호"></div>
+<div><label>휴대전화번호</label><input name="phone" type="tel" placeholder="010-0000-0000"></div>
+</div>
+<button type="submit">본인인증 계속하기</button>
+</form>
+<p class="note">FinDer 성능 검증용 로컬 Fixture입니다. 제출 이벤트는 차단되며 어떠한 정보도 전송되지 않습니다.</p>
+</section>
+<aside class="card">
+<h2>보안 공지</h2>
+<div class="notice">최근 해외 IP에서 로그인 시도가 확인되었습니다.</div>
+<div class="notice">보안 강화를 위해 OTP 재등록이 필요할 수 있습니다.</div>
+<div class="notice">인증이 지연될 경우 상담원을 통해 즉시 처리할 수 있습니다.</div>
+<a href="#" class="chat" id="chatLink">카카오톡 상담 바로가기</a>
+<p class="note">테스트 목적상 외부 상담 링크도 실제로 이동하지 않습니다.</p>
+</aside>
+</main>
+<script>
+document.getElementById('securityForm').addEventListener('submit',e=>{e.preventDefault();alert('테스트 Fixture입니다. 입력 정보는 전송되지 않습니다.');});
+document.getElementById('chatLink').addEventListener('click',e=>{e.preventDefault();alert('테스트 Fixture입니다. 외부 링크는 비활성화되어 있습니다.');});
+</script>
+</body>
+</html>

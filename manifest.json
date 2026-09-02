@@ -1,0 +1,23 @@
+{
+  "id": "kb-security-verify-001",
+  "safe_fixture": true,
+  "expected": {
+    "verdict": "PHISHING",
+    "impersonation_type": "FINANCIAL_INSTITUTION",
+    "impersonated_brand": "KB국민은행",
+    "credential_request": true,
+    "financial_action_request": false,
+    "app_install_request": false,
+    "external_contact_request": true
+  },
+  "expected_dom_signals": [
+    "brand impersonation text",
+    "non-official/local host",
+    "password input",
+    "OTP input",
+    "phone input",
+    "POST form",
+    "urgency/account restriction wording",
+    "external contact inducement"
+  ]
+}

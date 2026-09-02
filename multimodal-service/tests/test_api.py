@@ -169,6 +169,8 @@ def test_nested_sandbox_payload_is_forwarded_without_losing_collection_data(monk
     assert captured["screenshot"] == payload["screenshot"]
     assert captured["collected_at"] == payload["collectedAt"]
     assert captured["status_code"] == 200
+    assert captured["rule_analysis"]["impersonation"]["brand"] == "KB국민은행"
+    assert captured["rule_analysis"]["domainAnalysis"]["domainBrandMismatch"] is True
 
 
 def test_empty_sandbox_collections_fall_back_to_dom(monkeypatch):

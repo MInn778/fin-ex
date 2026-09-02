@@ -15,10 +15,12 @@ from fastapi import FastAPI, HTTPException
 try:
     from .analyzer import analyze
     from .config import Settings
+    from .dom_risk_analyzer import analyze_dom_risk
     from .schemas import AnalyzeRequest, AnalyzeResponse, unknown_response
 except ImportError:  # Uvicorn started from app/ as used by the Dockerfile.
     from analyzer import analyze
     from config import Settings
+    from dom_risk_analyzer import analyze_dom_risk
     from schemas import AnalyzeRequest, AnalyzeResponse, unknown_response
 
 app = FastAPI(title="fin-der Multimodal Service", version="2.0.0")
@@ -198,6 +200,7 @@ def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
                 "downloads": dom["downloads"],
             },
         }
+        input_data["rule_analysis"] = analyze_dom_risk(input_data)
         return AnalyzeResponse.model_validate(analyze(input_data))
     except HTTPException:
         raise

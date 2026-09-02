@@ -1,12 +1,35 @@
 {
-  "requestedUrl": "https://fake-support.example/apply",
-  "finalUrl": "https://fake-support.example/form",
+  "analysisId": "AN-20260902-001",
+  "requestedUrl": "https://example.com",
+  "finalUrl": "https://example.com/login",
   "statusCode": 200,
-  "title": "정책자금 신청",
-  "html": "<html><body><form><input name=\"resident_number\"><button>신청</button></form></body></html>",
-  "screenshotBase64": "iVBORw0KGgoAAA...",
-  "htmlSizeBytes": 1024,
-  "screenshotSizeBytes": 4096,
-  "loadTimeMs": 520,
+  "page": {
+    "title": "KB국민은행 보안인증센터",
+    "visibleText": "고객님의 계좌 보호를 위해 본인인증을 진행해 주세요.",
+    "html": "<html><body><form action=\"/verify\" method=\"post\"><label for=\"password\">비밀번호</label><input id=\"password\" name=\"password\" type=\"password\"></form></body></html>"
+  },
+  "inputs": [
+    {"type": "password", "name": "password", "id": "password", "placeholder": "비밀번호", "label": "비밀번호"},
+    {"type": "text", "name": "otp", "id": "otp", "placeholder": "인증번호", "label": "OTP 인증번호"}
+  ],
+  "forms": [
+    {"method": "POST", "action": "https://example.com/verify"}
+  ],
+  "links": [
+    {"text": "카카오톡 상담", "href": "https://example.com/contact"}
+  ],
+  "network": {
+    "requestDomains": ["example.com"],
+    "downloadDetected": false
+  },
+  "redirectChain": [
+    "https://example.com",
+    "https://example.com/login"
+  ],
+  "screenshot": {
+    "available": true,
+    "url": "/api/analyses/AN-20260902-001/screenshot"
+  },
+  "collectedAt": "2026-09-02T12:00:00+09:00",
   "error": null
 }

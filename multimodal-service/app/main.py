@@ -31,22 +31,36 @@ def _clean_text(value: str) -> str:
 def extract_dom_context(html: str, base_url: str | None) -> dict:
     """Extract analysis signals without executing page code or fetching links."""
     if not html:
-        return {"visible_text": "", "forms": [], "buttons": [], "links": [], "downloads": []}
+        return {"visible_text": "", "inputs": [], "forms": [], "buttons": [], "links": [], "downloads": []}
 
     soup = BeautifulSoup(html, "html.parser")
     for tag in soup(["script", "style", "noscript", "template"]):
         tag.decompose()
 
+    def extract_input(element) -> dict:
+        element_id = element.get("id")
+        label_element = soup.find("label", attrs={"for": element_id}) if element_id else None
+        if label_element is None:
+            label_element = element.find_parent("label")
+        return {
+            "type": element.get("type", element.name),
+            "name": element.get("name"),
+            "id": element_id,
+            "autocomplete": element.get("autocomplete"),
+            "placeholder": element.get("placeholder"),
+            "label": _clean_text(label_element.get_text(" ", strip=True)) if label_element else None,
+        }
+
+    all_inputs = [
+        extract_input(element)
+        for element in soup.find_all(["input", "select", "textarea"], limit=500)
+    ]
     forms = []
     for form in soup.find_all("form", limit=50):
-        inputs = []
-        for element in form.find_all(["input", "select", "textarea"], limit=100):
-            inputs.append({
-                "type": element.get("type", element.name),
-                "name": element.get("name"),
-                "autocomplete": element.get("autocomplete"),
-                "placeholder": element.get("placeholder"),
-            })
+        inputs = [
+            extract_input(element)
+            for element in form.find_all(["input", "select", "textarea"], limit=100)
+        ]
         forms.append({
             "action": urljoin(base_url or "", form.get("action", "")),
             "method": str(form.get("method", "get")).upper(),
@@ -65,13 +79,18 @@ def extract_dom_context(html: str, base_url: str | None) -> dict:
     download_suffixes = {".apk", ".exe", ".msi", ".dmg", ".pkg", ".zip"}
     for anchor in soup.find_all("a", href=True, limit=200):
         destination = urljoin(base_url or "", anchor["href"])
-        item = {"text": _clean_text(anchor.get_text(" ", strip=True)), "destination": destination}
+        item = {
+            "text": _clean_text(anchor.get_text(" ", strip=True)),
+            "destination": destination,
+            "href": destination,
+        }
         links.append(item)
         if anchor.has_attr("download") or Path(urlparse(destination).path).suffix.lower() in download_suffixes:
             downloads.append(item)
 
     return {
         "visible_text": _clean_text(soup.get_text(" ", strip=True)),
+        "inputs": all_inputs,
         "forms": forms,
         "buttons": buttons,
         "links": links,
@@ -115,10 +134,17 @@ def health() -> dict[str, object]:
 @app.post("/v1/analyze", response_model=AnalyzeResponse)
 def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
     current_settings = Settings.from_env()
-    if len(request.html.encode("utf-8")) > current_settings.max_html_bytes:
+    title = request.page.title if request.page and request.page.title else request.title
+    html = request.page.html if request.page and request.page.html else request.html
+    visible_text = (
+        request.page.visible_text
+        if request.page and request.page.visible_text
+        else request.visible_text
+    )
+    if len(html.encode("utf-8")) > current_settings.max_html_bytes:
         raise HTTPException(status_code=413, detail="HTML이 허용 크기를 초과했습니다.")
     has_screenshot = bool(request.screenshot_base64 and request.screenshot_base64.strip())
-    has_document = bool(request.html.strip() or request.visible_text.strip())
+    has_document = bool(html.strip() or visible_text.strip())
 
     if not has_screenshot and not has_document:
         if request.error:
@@ -132,7 +158,7 @@ def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
         )
 
     final_url = request.final_url or request.requested_url or ""
-    dom = extract_dom_context(request.html, final_url)
+    dom = extract_dom_context(html, final_url)
     screenshot_bytes = (
         _decode_screenshot(request.screenshot_base64, current_settings.max_screenshot_bytes)
         if has_screenshot and request.screenshot_base64
@@ -146,18 +172,29 @@ def analyze_endpoint(request: AnalyzeRequest) -> AnalyzeResponse:
                 tmp_file.write(screenshot_bytes)
                 tmp_path = Path(tmp_file.name)
 
+        inputs = [item.model_dump() for item in request.inputs] or dom["inputs"]
+        forms = [item.model_dump() for item in request.forms] or dom["forms"]
+        links = [item.model_dump() for item in request.links] or dom["links"]
         input_data = {
-            "analysis_id": uuid.uuid4().hex,
+            "analysis_id": request.analysis_id or uuid.uuid4().hex,
             "original_url": request.requested_url or final_url,
             "final_url": final_url,
-            "title": request.title,
+            "status_code": request.status_code,
+            "title": title,
             "screenshot_path": str(tmp_path) if tmp_path else None,
-            "page_text": request.visible_text or dom["visible_text"],
-            "html": request.html,
-            "forms": request.forms or dom["forms"],
+            "screenshot_url": request.screenshot.url if request.screenshot else None,
+            "screenshot": request.screenshot.model_dump() if request.screenshot else None,
+            "page_text": visible_text or dom["visible_text"],
+            "html": html,
+            "inputs": inputs,
+            "forms": forms,
+            "links": links,
+            "network": request.network.model_dump() if request.network else None,
+            "redirect_chain": request.redirect_chain,
+            "collected_at": request.collected_at,
             "dom_signals": {
                 "buttons": dom["buttons"],
-                "links": dom["links"],
+                "links": links,
                 "downloads": dom["downloads"],
             },
         }

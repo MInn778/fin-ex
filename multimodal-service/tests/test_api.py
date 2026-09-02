@@ -8,7 +8,7 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_DIR / "app"))
 
 import main
-from schemas import AnalyzeResponse
+from schemas import AnalyzeRequest, AnalyzeResponse
 
 
 client = TestClient(main.app)
@@ -120,3 +120,71 @@ def test_gemini_error_is_isolated_and_server_stays_healthy(monkeypatch):
 
 def test_response_model_has_only_latest_contract_fields():
     assert set(AnalyzeResponse.model_fields) == set(sample_result())
+
+
+def test_flat_payload_still_parses_with_snake_case_aliases():
+    request = AnalyzeRequest.model_validate({
+        "analysis_id": "legacy-analysis",
+        "requested_url": "https://example.com",
+        "visible_text": "legacy text",
+        "screenshot_base64": "YWJj",
+        "unknownLegacyField": True,
+    })
+    assert request.analysis_id == "legacy-analysis"
+    assert request.requested_url == "https://example.com"
+    assert request.visible_text == "legacy text"
+
+
+def test_nested_sandbox_payload_is_forwarded_without_losing_collection_data(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-only-key")
+    captured = {}
+    monkeypatch.setattr(main, "analyze", lambda input_data: captured.update(input_data) or sample_result())
+    payload = {
+        "analysisId": "AN-20260902-001",
+        "requestedUrl": "https://example.com",
+        "finalUrl": "https://example.com/login",
+        "statusCode": 200,
+        "page": {"title": "KB국민은행 보안인증센터", "visibleText": "본인인증을 진행해 주세요.", "html": "<form action='/dom'><input name='dom-input'></form>"},
+        "inputs": [{"type": "password", "name": "sandbox-input", "id": "password", "label": "비밀번호"}],
+        "forms": [{"method": "POST", "action": "https://example.com/verify"}],
+        "links": [{"text": "상담", "href": "https://example.com/contact"}],
+        "network": {"requestDomains": ["example.com"], "downloadDetected": False},
+        "redirectChain": ["https://example.com", "https://example.com/login"],
+        "screenshot": {"available": True, "url": "/api/analyses/AN-20260902-001/screenshot"},
+        "collectedAt": "2026-09-02T12:00:00+09:00",
+        "error": None,
+    }
+    response = client.post("/v1/analyze", json=payload)
+    assert response.status_code == 200
+    assert captured["analysis_id"] == payload["analysisId"]
+    assert captured["title"] == payload["page"]["title"]
+    assert captured["page_text"] == payload["page"]["visibleText"]
+    assert captured["html"] == payload["page"]["html"]
+    assert captured["inputs"][0]["name"] == "sandbox-input"
+    assert captured["forms"][0]["action"] == "https://example.com/verify"
+    assert captured["links"][0]["href"] == "https://example.com/contact"
+    assert captured["network"] == {"request_domains": ["example.com"], "download_detected": False}
+    assert captured["redirect_chain"] == payload["redirectChain"]
+    assert captured["screenshot_url"] == payload["screenshot"]["url"]
+    assert captured["screenshot"] == payload["screenshot"]
+    assert captured["collected_at"] == payload["collectedAt"]
+    assert captured["status_code"] == 200
+
+
+def test_empty_sandbox_collections_fall_back_to_dom(monkeypatch):
+    monkeypatch.setenv("GEMINI_API_KEY", "test-only-key")
+    captured = {}
+    monkeypatch.setattr(main, "analyze", lambda input_data: captured.update(input_data) or sample_result())
+    html = """<label for="otp">OTP 인증번호</label>
+        <form action="/verify" method="post"><input id="otp" name="otp"></form>
+        <a href="/contact">상담</a>"""
+    response = client.post("/v1/analyze", json={
+        "requestedUrl": "https://example.com", "page": {"html": html},
+        "inputs": [], "forms": [], "links": [],
+    })
+    assert response.status_code == 200
+    assert captured["inputs"][0]["id"] == "otp"
+    assert captured["inputs"][0]["label"] == "OTP 인증번호"
+    assert captured["forms"][0]["method"] == "POST"
+    assert captured["links"][0]["destination"] == "https://example.com/contact"
+    assert captured["links"][0]["href"] == "https://example.com/contact"

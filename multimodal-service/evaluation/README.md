@@ -1,5 +1,12 @@
 # FinDer Page Behavior AI Evaluation
 
+> Synthetic fixture performance is not an estimate of real-world phishing detection performance.
+
+Public archived-page evaluation uses sanitized feature-only manifests: raw HTML/JavaScript is not
+retained or executed, browser/network behavior and dynamic DOM changes are not observed, redirects
+may be unavailable, and screenshot similarity may be unavailable. It measures the current
+URL/domain/text/form/input/link-centered analysis rather than full browser-runtime detection.
+
 이 디렉터리는 commit `2b02dfd`의 판정 로직을 `baseline-v1`로 고정하고, 동일 입력을 반복 측정하기 위한 오프라인 평가 도구다. Production의 `analyze_dom_risk`와 `fuse_analysis`, `AnalyzeRequest`/`AnalyzeResponse`를 직접 재사용하며 scoring을 다시 구현하지 않는다.
 
 ## 실행

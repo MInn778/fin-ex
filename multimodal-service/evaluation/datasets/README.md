@@ -1,5 +1,24 @@
 # Evaluation manifest contract
 
+## Public archived datasets
+
+Public dataset records must be feature-only and inert. Keep `page.html` empty and retain only
+URL metadata plus safely extracted title, visible text, input, form, and link fields. Never copy
+raw archives into this directory. `evaluation/raw/`, `evaluation/cache/`, and
+`evaluation/downloads/` are ignored as an additional guardrail, but endpoint-protection warnings
+must still stop processing immediately.
+
+The offline adapters under `evaluation/adapters/` implement the documented PhishIntention and
+Phishpedia per-site directory layout (`info.txt`, `shot.png`, and optional `html.txt`). The label
+must be supplied by the caller because the documented site directory does not encode ground truth.
+HTML parsing is opt-in for PhishIntention and is disabled by default; screenshots are never copied.
+Adapters do not fetch, resolve, or open the URL stored in `info.txt`.
+
+No `real_public_manifest.jsonl` is checked in until a genuinely public, labeled, safely acquired
+source provides enough inert metadata. The official large PhishIntention/Phishpedia releases contain
+raw HTML/screenshots, so they are unsupported for automatic download or extraction on this Windows
+workstation. PhreshPhish was reviewed only at the schema level and must not be bulk-downloaded here.
+
 UTF-8 JSONL 한 줄이 한 sample이다. 필수 top-level field는 `sampleId`(전체 manifest에서 unique), `source`, `split`, `label`, `input`이다. `split`은 `train`, `validation`, `test`, `holdout`; `label`은 `BENIGN`, `PHISHING`이며 향후 `UNKNOWN`, `SKIP`도 허용한다. `input`은 Sandbox `AnalyzeRequest`와 같은 camelCase 계약을 쓴다.
 
 ```json

@@ -9,7 +9,7 @@ sys.path.insert(0, str(SERVICE_DIR / "evaluation"))
 
 from run_evaluation import (ManifestError, classification_metrics, collect_cases,
                             evaluate_sample, load_manifest, run_evaluation,
-                            score_statistics, verdict_distribution)
+                            score_overlap, score_statistics, verdict_distribution)
 
 MANIFEST = SERVICE_DIR / "evaluation" / "datasets" / "baseline_manifest.jsonl"
 
@@ -78,6 +78,15 @@ def test_score_statistics_and_percentiles():
     assert stats["PHISHING"]["p90"] == 80
 
 
+def test_score_overlap_reports_intersecting_ranges():
+    rows = [prediction("BENIGN", "NORMAL", 10), prediction("BENIGN", "NORMAL", 40),
+            prediction("PHISHING", "PHISHING", 30), prediction("PHISHING", "PHISHING", 80)]
+    assert score_overlap(rows) == {
+        "available": True, "overlaps": True, "lower": 30, "upper": 40,
+        "benignMax": 40, "phishingMin": 30,
+    }
+
+
 def test_verdict_distribution_is_by_label():
     result = verdict_distribution([prediction("BENIGN", "NORMAL"), prediction("BENIGN", "SUSPICIOUS")])
     assert result["BENIGN"]["NORMAL"] == {"count": 1, "rate": 0.5}
@@ -105,6 +114,7 @@ def test_run_writes_summary_report_and_jsonl(tmp_path):
     assert summary["sampleCount"] == 2
     assert {"summary.json", "report.md", "predictions.jsonl", "errors.jsonl", "review_cases.jsonl"} == {p.name for p in run_dir.iterdir()}
     assert "Strict Metrics" in (run_dir / "report.md").read_text(encoding="utf-8")
+    assert "Synthetic fixture performance is not an estimate" in (run_dir / "report.md").read_text(encoding="utf-8")
     json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
 
 

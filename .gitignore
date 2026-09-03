@@ -50,6 +50,11 @@ target/
 playwright-report/
 test-results/
 
+# Public page evaluation: never commit raw archives or download caches
+multimodal-service/evaluation/raw/
+multimodal-service/evaluation/cache/
+multimodal-service/evaluation/downloads/
+
 # Database
 *.db
 *.sqlite

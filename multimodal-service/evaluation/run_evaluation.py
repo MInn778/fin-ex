@@ -199,6 +199,20 @@ def score_statistics(predictions: Iterable[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def score_overlap(predictions: Iterable[dict[str, Any]]) -> dict[str, Any]:
+    rows = list(predictions)
+    benign = [row["pageRiskScore"] for row in rows if row["label"] == "BENIGN"]
+    phishing = [row["pageRiskScore"] for row in rows if row["label"] == "PHISHING"]
+    if not benign or not phishing:
+        return {"available": False, "overlaps": None, "lower": None, "upper": None}
+    lower = max(min(benign), min(phishing))
+    upper = min(max(benign), max(phishing))
+    return {"available": True, "overlaps": lower <= upper,
+            "lower": lower if lower <= upper else None,
+            "upper": upper if lower <= upper else None,
+            "benignMax": max(benign), "phishingMin": min(phishing)}
+
+
 def verdict_distribution(predictions: Iterable[dict[str, Any]]) -> dict[str, Any]:
     rows = list(predictions); result = {}
     for label in ("BENIGN", "PHISHING"):
@@ -283,6 +297,8 @@ def render_report(summary: dict[str, Any], errors: list[dict[str, Any]], reviews
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 """ + "\n".join(f"| {label} | {s['count']} | {s['min']} | {s['max']} | {s['mean']} | {s['median']} | {s['p25']} | {s['p75']} | {s['p90']} |" for label, s in scores.items()) + f"""
 
+Score overlap: `{json.dumps(summary['scoreOverlap'], ensure_ascii=False)}`
+
 ## Verdict Distribution
 
 ```json
@@ -306,6 +322,17 @@ def render_report(summary: dict[str, Any], errors: list[dict[str, Any]], reviews
 ## Review Cases
 
 {case_lines(reviews)}
+
+## Interpretation and Limitations
+
+Synthetic fixture performance is not an estimate of real-world phishing detection performance.
+
+For public archived-page manifests, this is a sanitized, feature-only evaluation. Raw HTML and
+JavaScript are intentionally not retained. Malicious JavaScript behavior is not executed, dynamic
+DOM mutations and real network behavior are not observed, redirect behavior may be unavailable,
+raw script-level obfuscation signals are intentionally excluded, and screenshot visual similarity
+may be unavailable. Therefore, this evaluates the available URL/domain/text/form/input/link-centered
+page-risk analysis, not full browser-runtime phishing detection.
 """
 
 
@@ -330,7 +357,8 @@ def run_evaluation(manifest: Path, semantic_mode: str, output_dir: Path, run_id:
         "split": split, "sampleCount": len(samples), "warnings": warnings,
         "strict": classification_metrics(predictions, "strict"), "alert": classification_metrics(predictions, "alert"),
         "coverage": {v: {"count": counts[v], "rate": safe_div(counts[v], len(predictions))} for v in VERDICTS},
-        "scoreDistribution": score_statistics(predictions), "verdictDistribution": verdict_distribution(predictions),
+        "scoreDistribution": score_statistics(predictions), "scoreOverlap": score_overlap(predictions),
+        "verdictDistribution": verdict_distribution(predictions),
         "fieldMetrics": field_metrics(samples, predictions),
     }
     serializable = [{k: v for k, v in row.items() if k != "ruleAnalysis"} for row in predictions]

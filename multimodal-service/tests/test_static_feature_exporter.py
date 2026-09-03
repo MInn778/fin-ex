@@ -7,6 +7,7 @@ SERVICE_DIR = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(SERVICE_DIR))
 
 from evaluation.adapters.common import validate_inert_record
+from evaluation.adapters.safe_html import extract_features
 from evaluation.exporters.static_feature_exporter import ExportConfig, export_jsonl
 
 
@@ -27,6 +28,7 @@ SYNTHETIC_HTML = """<!doctype html>
   <a href="data:text/html,placeholder">Data</a>
   <a href="blob:https://example.invalid/id">Blob</a>
   <p>Encoded AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</p>
+  <p>Documentation residue: function example() and javascript: are inert text.</p>
   <script>function placeholder(){ eval('placeholder'); window.location='https://example.invalid'; }</script>
   <iframe src="https://frame.example.invalid/">Frame payload</iframe>
   <svg onload="placeholder()"><text>SVG payload</text></svg>
@@ -72,7 +74,10 @@ def test_static_exporter_extracts_features_and_removes_executable_content(tmp_pa
     page = record["input"]["page"]
     assert page["title"] == "Example Account"
     assert "Verify your account details" in page["visibleText"]
-    assert all(text not in page["visibleText"] for text in ("placeholder()", "Frame payload", "SVG payload", "A" * 200))
+    assert all(text not in page["visibleText"] for text in (
+        "placeholder()", "Frame payload", "SVG payload", "A" * 200,
+        "function example()", "javascript:",
+    ))
     assert page["html"] == ""
     assert record["input"]["statusCode"] is None
     assert record["input"]["finalUrl"] is None
@@ -105,6 +110,17 @@ def test_static_exporter_is_deterministic_with_fixed_provenance(tmp_path):
     export_jsonl(source, first, _config())
     export_jsonl(source, second, _config())
     assert first.read_bytes() == second.read_bytes()
+
+
+def test_static_extraction_preserves_financial_and_login_analysis_context():
+    features = extract_features(
+        "<p>금융 로그인 즉시 계정 정지 송금 이체 계좌번호 입력 "
+        "카드정보 입력 대출 신청 상담 문의</p>"
+    )
+    assert features.visible_text == (
+        "금융 로그인 즉시 계정 정지 송금 이체 계좌번호 입력 "
+        "카드정보 입력 대출 신청 상담 문의"
+    )
 
 
 def test_static_exporter_source_has_no_network_browser_or_subprocess_capability():

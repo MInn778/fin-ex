@@ -11,6 +11,8 @@ from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Any
 
+from evaluation.adapters.common import sanitize_inert_text
+
 DANGEROUS_ELEMENTS = {"script", "style", "noscript", "iframe", "object", "embed", "template", "svg"}
 SAFE_INPUT_ATTRS = ("type", "name", "id", "placeholder", "autocomplete")
 UNSAFE_SCHEME = re.compile(r"^\s*(?:javascript|data|blob|vbscript)\s*:", re.IGNORECASE)
@@ -22,13 +24,15 @@ MAX_ITEMS = 2_000
 def _clean_text(value: str | None, limit: int = 4_096) -> str:
     if not value:
         return ""
-    value = BASE64_LIKE.sub("", value)
+    value = sanitize_inert_text(BASE64_LIKE.sub("", value))
     return " ".join(value.split())[:limit]
 
 
 def _safe_url(value: str | None) -> str | None:
+    if not value or UNSAFE_SCHEME.match(value):
+        return None
     cleaned = _clean_text(value)
-    if not cleaned or UNSAFE_SCHEME.match(cleaned):
+    if not cleaned:
         return None
     return cleaned
 

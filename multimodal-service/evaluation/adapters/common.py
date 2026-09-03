@@ -33,6 +33,13 @@ EXECUTABLE_PATTERNS = (
 )
 
 
+def sanitize_inert_text(value: str) -> str:
+    """Remove validator-blocked residues from statically extracted text."""
+    for pattern in EXECUTABLE_PATTERNS:
+        value = pattern.sub("", value)
+    return value
+
+
 class UnsafeContentError(ValueError):
     """Raised when generated output still contains executable-looking content."""
 

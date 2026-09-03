@@ -79,6 +79,18 @@ def test_signal_order_is_deterministic():
     assert first == [signal for signal in SIGNAL_ORDER if signal in first]
 
 
+def test_brand_detection_does_not_join_separate_text_sources():
+    result = analyze_dom_risk({
+        "final_url": "https://example.com",
+        "title": "My Account",
+        "page_text": "Sale",
+        "inputs": [], "forms": [], "links": [], "dom_signals": {},
+    })
+    assert result["impersonation"]["brand"] is None
+    assert "BRAND_IMPERSONATION" not in result["detectedSignals"]
+    assert "BRAND_DOMAIN_MISMATCH" not in result["detectedSignals"]
+
+
 def test_registrable_domain_handles_korean_suffixes_and_subdomains():
     assert registrable_domain("https://card.nonghyup.com") == "nonghyup.com"
     assert registrable_domain("https://service.ibk.co.kr") == "ibk.co.kr"

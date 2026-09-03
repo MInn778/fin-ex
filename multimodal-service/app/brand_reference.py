@@ -6,6 +6,7 @@ import json
 import re
 from functools import lru_cache
 from pathlib import Path
+from typing import Iterable
 
 
 REFERENCE_PATH = Path(__file__).resolve().parent.parent / "data" / "brand_reference.json"
@@ -35,14 +36,32 @@ def load_brand_reference() -> tuple[dict, ...]:
     return tuple(entries)
 
 
-def find_brand_candidates(text: str) -> list[dict]:
-    normalized = normalize_brand_text(text)
+def _text_sources(value: str | Iterable[str]) -> tuple[str, ...]:
+    return (value,) if isinstance(value, str) else tuple(str(item or "") for item in value)
+
+
+def brand_alias_match_count(text: str | Iterable[str], alias: str) -> int:
+    """Count alias matches without joining independent text sources."""
+    sources = _text_sources(text)
+    normalized_alias = normalize_brand_text(alias)
+    if not normalized_alias:
+        return 0
+    if len(normalized_alias) <= 3 and normalized_alias.isascii() and normalized_alias.isalpha():
+        pattern = re.compile(
+            rf"(?<![0-9a-z]){re.escape(normalized_alias)}(?![0-9a-z])",
+            re.IGNORECASE,
+        )
+        return sum(len(pattern.findall(source.casefold())) for source in sources)
+    return sum(normalize_brand_text(source).count(normalized_alias) for source in sources)
+
+
+def find_brand_candidates(text: str | Iterable[str]) -> list[dict]:
+    sources = _text_sources(text)
     candidates = []
     for entry in load_brand_reference():
         matches = []
         for alias in entry["aliases"]:
-            normalized_alias = normalize_brand_text(alias)
-            if normalized_alias and normalized_alias in normalized:
+            if brand_alias_match_count(sources, alias):
                 matches.append(alias)
         if matches:
             candidates.append({**entry, "matchedAliases": matches})

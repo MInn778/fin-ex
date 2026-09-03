@@ -7,9 +7,9 @@ from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
 try:
-    from .brand_reference import find_brand_candidates
+    from .brand_reference import brand_alias_match_count, find_brand_candidates
 except ImportError:
-    from brand_reference import find_brand_candidates
+    from brand_reference import brand_alias_match_count, find_brand_candidates
 
 
 SIGNAL_ORDER = (
@@ -97,8 +97,11 @@ def analyze_dom_risk(input_data: dict) -> dict:
     full_text = " ".join(str(part or "") for part in text_parts)
     normalized_text = _normalized(full_text)
 
-    candidates = find_brand_candidates(full_text)
-    candidates.sort(key=lambda item: (-sum(normalized_text.count(_normalized(alias)) for alias in item["matchedAliases"]), item["brand"]))
+    candidates = find_brand_candidates(text_parts)
+    candidates.sort(key=lambda item: (
+        -sum(brand_alias_match_count(text_parts, alias) for alias in item["matchedAliases"]),
+        item["brand"],
+    ))
     primary = candidates[0] if candidates else None
     current_domain = registrable_domain(final_url)
     official_domains = list(primary["officialDomains"]) if primary else []

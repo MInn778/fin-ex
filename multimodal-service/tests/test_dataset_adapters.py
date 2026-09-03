@@ -43,16 +43,17 @@ def test_public_record_is_inert_and_does_not_invent_observations():
     assert record["expected"] == {
         "brand": None, "credentialTypes": [], "domainBrandMismatch": None,
     }
-    assert record["input"]["finalUrl"] == "https://example.invalid/path"
+    assert record["input"]["finalUrl"] is None
 
 
 @pytest.mark.parametrize(
     "payload",
     [
-        "<script src=x>", "</script>", "javascript:run", "data:text/html,x",
+        "<script src=x>", "</script>", "javascript:run", "data:text/html,x", "blob:payload",
         "onload=x", "onclick=x", "onerror=x", "onmouseover=x", "<iframe>",
         "<object>", "<embed>", "eval(x)", "document.write(x)",
-        "window.location=x", "atob(x)", "fromCharCode(x)", "A" * 220,
+        "window.location=x", "window.location.href", "function run()", "atob(x)",
+        "fromCharCode(x)", "A" * 220, "</iframe>", "<svg onload=x>",
         "onblur=run()", "onfocus = run()", "ONCLICK=run()",
         "onpointerenter = evil()", "onanimationstart=evil()",
     ],
@@ -82,6 +83,20 @@ def test_public_record_uses_source_status_only_when_provided():
         url="https://example.invalid", split="test", status_code=204,
     )
     assert record["input"]["statusCode"] == 204
+
+
+def test_public_record_uses_final_url_only_when_provided():
+    without_final = inert_record(
+        sample_id="without-final", source="test", label="BENIGN",
+        url="https://requested.example.invalid", split="test",
+    )
+    with_final = inert_record(
+        sample_id="with-final", source="test", label="BENIGN",
+        url="https://requested.example.invalid", final_url="https://final.example.invalid/path",
+        split="test",
+    )
+    assert without_final["input"]["finalUrl"] is None
+    assert with_final["input"]["finalUrl"] == "https://final.example.invalid/path"
 
 
 def test_phishintention_adapter_reads_local_metadata_only(tmp_path, monkeypatch):
@@ -122,8 +137,8 @@ def test_adapter_modules_contain_no_network_or_browser_clients():
     assert all(token not in source for token in forbidden)
 
 
-def test_checked_in_public_manifest_is_inert_if_present():
-    manifest = SERVICE_DIR / "evaluation" / "datasets" / "real_public_manifest.jsonl"
+def test_local_public_manifest_is_inert_if_present():
+    manifest = SERVICE_DIR / "evaluation" / "local-data" / "real_public_url_only_manifest.jsonl"
     if not manifest.exists():
         pytest.skip("no safely acquired public manifest is checked in")
     rows = [json.loads(line) for line in manifest.read_text(encoding="utf-8").splitlines() if line]

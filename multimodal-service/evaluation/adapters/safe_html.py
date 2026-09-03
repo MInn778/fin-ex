@@ -12,8 +12,8 @@ from html.parser import HTMLParser
 from typing import Any
 
 DANGEROUS_ELEMENTS = {"script", "style", "noscript", "iframe", "object", "embed", "template", "svg"}
-SAFE_INPUT_ATTRS = {"type", "name", "id", "placeholder", "autocomplete"}
-UNSAFE_SCHEME = re.compile(r"^\s*(?:javascript|data|vbscript)\s*:", re.IGNORECASE)
+SAFE_INPUT_ATTRS = ("type", "name", "id", "placeholder", "autocomplete")
+UNSAFE_SCHEME = re.compile(r"^\s*(?:javascript|data|blob|vbscript)\s*:", re.IGNORECASE)
 BASE64_LIKE = re.compile(r"[A-Za-z0-9+/]{200,}={0,2}")
 MAX_TEXT_CHARS = 200_000
 MAX_ITEMS = 2_000
@@ -54,8 +54,9 @@ class _FeatureParser(HTMLParser):
         self.inputs: list[dict[str, Any]] = []
         self.links: list[dict[str, Any]] = []
         self.link_stack: list[dict[str, Any]] = []
-        self.label_stack: list[list[str]] = []
-        self.last_input: dict[str, Any] | None = None
+        self.label_stack: list[dict[str, Any]] = []
+        self.labels_by_for: dict[str, str] = {}
+        self.inputs_by_id: dict[str, dict[str, Any]] = {}
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         tag = tag.casefold()
@@ -81,13 +82,21 @@ class _FeatureParser(HTMLParser):
             self.inputs.append(item)
             if self.form_stack:
                 self.form_stack[-1]["inputs"].append(item)
-            self.last_input = item
+            input_id = item.get("id")
+            if input_id:
+                self.inputs_by_id[input_id] = item
+                if input_id in self.labels_by_for:
+                    item["label"] = self.labels_by_for[input_id]
+            if self.label_stack:
+                self.label_stack[-1]["inputs"].append(item)
         elif tag == "a" and len(self.links) < MAX_ITEMS:
             link = {"text": "", "href": _safe_url(safe_attrs.get("href"))}
             self.links.append(link)
             self.link_stack.append(link)
         elif tag == "label":
-            self.label_stack.append([])
+            self.label_stack.append(
+                {"for": _clean_text(safe_attrs.get("for")) or None, "parts": [], "inputs": []}
+            )
 
     def handle_endtag(self, tag: str) -> None:
         tag = tag.casefold()
@@ -104,9 +113,19 @@ class _FeatureParser(HTMLParser):
         elif tag == "a" and self.link_stack:
             self.link_stack.pop()
         elif tag == "label" and self.label_stack:
-            label = _clean_text(" ".join(self.label_stack.pop()))
-            if label and self.last_input and not self.last_input.get("label"):
-                self.last_input["label"] = label
+            context = self.label_stack.pop()
+            label = _clean_text(" ".join(context["parts"]))
+            if not label:
+                return
+            for item in context["inputs"]:
+                if not item.get("label"):
+                    item["label"] = label
+            target_id = context["for"]
+            if target_id:
+                self.labels_by_for[target_id] = label
+                target = self.inputs_by_id.get(target_id)
+                if target and not target.get("label"):
+                    target["label"] = label
 
     def handle_data(self, data: str) -> None:
         if self.blocked_depth:
@@ -122,7 +141,7 @@ class _FeatureParser(HTMLParser):
             current = self.link_stack[-1]
             current["text"] = _clean_text(f"{current['text']} {cleaned}")
         if self.label_stack:
-            self.label_stack[-1].append(cleaned)
+            self.label_stack[-1]["parts"].append(cleaned)
 
 
 def extract_features(html: str) -> ExtractedPage:

@@ -1,0 +1,45 @@
+{
+  "datasetName": "KevinRoshan8/phreshphish",
+  "datasetRevision": "3919499931c1951479406994f4a122232e584f0d",
+  "datasetPage": "https://huggingface.co/datasets/KevinRoshan8/phreshphish",
+  "paper": "https://arxiv.org/abs/2507.10854",
+  "license": "CC-BY-4.0",
+  "sourceSplit": "test",
+  "sourceShard": 0,
+  "sourceParquet": "https://huggingface.co/api/datasets/KevinRoshan8/phreshphish/parquet/default/test/0.parquet",
+  "acquisitionDate": "2026-09-03",
+  "acquisitionMethod": "DuckDB remote Parquet projection; no dataset row endpoint and no phishing URL fetch",
+  "selectedColumns": [
+    "sha256",
+    "url",
+    "label",
+    "target",
+    "date"
+  ],
+  "intentionallyExcludedColumns": [
+    "html"
+  ],
+  "selectionRule": "Within test shard 0, filter each source label, order by sha256 ascending, normalize URL, deduplicate by normalized URL, and take the first 20 valid records per label before evaluation.",
+  "featureScope": "URL-only metadata; title, visible text, inputs, forms, links, HTTP status, redirects, network behavior, and screenshots are unavailable.",
+  "datasetRows": {
+    "train": 498255,
+    "test": 168060,
+    "total": 666315
+  },
+  "datasetRepositoryBytes": 36576373578,
+  "sampleCount": 40,
+  "labelDistribution": {
+    "BENIGN": 20,
+    "PHISHING": 20
+  },
+  "adapterStats": {
+    "queried": 40,
+    "success": 40,
+    "skip": 0,
+    "error": 0,
+    "duplicate": 0
+  },
+  "rawHtmlDownloaded": false,
+  "executableContentStored": false,
+  "livePhishingUrlAccessed": false
+}

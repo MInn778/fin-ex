@@ -1,0 +1,43 @@
+{
+  "experiment": "real-public-url-only-smoke-rule-only",
+  "datasetName": "KevinRoshan8/phreshphish",
+  "datasetRevision": "3919499931c1951479406994f4a122232e584f0d",
+  "sampleCount": 40,
+  "labelDistribution": {
+    "BENIGN": 20,
+    "PHISHING": 20
+  },
+  "featureScope": "URL-only; no title, visible text, input, form, link, status, redirect, network, screenshot, or HTML features.",
+  "semanticMode": "rule-only",
+  "verdictDistribution": {
+    "NORMAL": 0,
+    "SUSPICIOUS": 0,
+    "PHISHING": 0,
+    "UNKNOWN": 40
+  },
+  "strict": {
+    "evaluatedSamples": 0,
+    "tp": 0,
+    "tn": 0,
+    "fp": 0,
+    "fn": 0,
+    "coverage": 0.0
+  },
+  "alert": {
+    "evaluatedSamples": 0,
+    "tp": 0,
+    "tn": 0,
+    "fp": 0,
+    "fn": 0,
+    "coverage": 0.0
+  },
+  "scoreDistribution": {
+    "BENIGN": {"min": 0, "max": 0, "mean": 0, "median": 0},
+    "PHISHING": {"min": 0, "max": 0, "mean": 0, "median": 0}
+  },
+  "scoreOverlap": true,
+  "interpretation": "This confirms that URL-only records with unavailable page/status features cannot evaluate the current page-behavior pipeline; it is not a full page-behavior performance estimate.",
+  "containsSampleUrls": false,
+  "rawHtmlStored": false,
+  "livePhishingUrlAccessed": false
+}

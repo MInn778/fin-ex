@@ -333,6 +333,9 @@ DOM mutations and real network behavior are not observed, redirect behavior may 
 raw script-level obfuscation signals are intentionally excluded, and screenshot visual similarity
 may be unavailable. Therefore, this evaluates the available URL/domain/text/form/input/link-centered
 page-risk analysis, not full browser-runtime phishing detection.
+
+These samples evaluate only the subset of FinDer features available from static URL metadata and
+should not be interpreted as full page-behavior evaluation when the manifest is URL-only.
 """
 
 

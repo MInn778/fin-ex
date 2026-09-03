@@ -54,6 +54,8 @@ test-results/
 multimodal-service/evaluation/raw/
 multimodal-service/evaluation/cache/
 multimodal-service/evaluation/downloads/
+multimodal-service/evaluation/local-data/
+multimodal-service/evaluation/results/real-public-*/
 
 # Database
 *.db

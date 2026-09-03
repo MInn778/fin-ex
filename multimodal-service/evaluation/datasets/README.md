@@ -14,10 +14,20 @@ must be supplied by the caller because the documented site directory does not en
 HTML parsing is opt-in for PhishIntention and is disabled by default; screenshots are never copied.
 Adapters do not fetch, resolve, or open the URL stored in `info.txt`.
 
-No `real_public_manifest.jsonl` is checked in until a genuinely public, labeled, safely acquired
-source provides enough inert metadata. The official large PhishIntention/Phishpedia releases contain
-raw HTML/screenshots, so they are unsupported for automatic download or extraction on this Windows
-workstation. PhreshPhish was reviewed only at the schema level and must not be bulk-downloaded here.
+The official large PhishIntention/Phishpedia releases contain raw HTML/screenshots, so they remain
+unsupported for automatic download or extraction on this Windows workstation. PhreshPhish must not
+be bulk-downloaded here; only explicitly projected inert metadata columns may be retained.
+
+The PhreshPhish URL-only smoke manifest is kept locally as
+`evaluation/local-data/real_public_url_only_manifest.jsonl` because it contains actual phishing URL
+strings and must not be committed to a public repository. Its inert provenance and aggregate result
+are stored as `real_public_url_only_provenance.json` and `real_public_url_only_summary.json`. These
+samples evaluate only the subset of FinDer features available from static URL metadata and should
+not be interpreted as full page-behavior evaluation.
+
+Feature-rich exports must be produced outside this Windows workstation by following the
+[isolated exporter procedure](../exporters/README.md). Only validated inert JSONL may be transferred
+into `evaluation/local-data/`; raw archives and HTML must remain outside the repository and PC.
 
 UTF-8 JSONL 한 줄이 한 sample이다. 필수 top-level field는 `sampleId`(전체 manifest에서 unique), `source`, `split`, `label`, `input`이다. `split`은 `train`, `validation`, `test`, `holdout`; `label`은 `BENIGN`, `PHISHING`이며 향후 `UNKNOWN`, `SKIP`도 허용한다. `input`은 Sandbox `AnalyzeRequest`와 같은 camelCase 계약을 쓴다.
 

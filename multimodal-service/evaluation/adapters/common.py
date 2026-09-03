@@ -20,11 +20,13 @@ EXECUTABLE_PATTERNS = (
     re.compile(r"<\s*/?\s*script\b", re.IGNORECASE),
     re.compile(r"\bjavascript\s*:", re.IGNORECASE),
     re.compile(r"\bdata\s*:\s*text/html", re.IGNORECASE),
+    re.compile(r"\bblob\s*:", re.IGNORECASE),
     re.compile(r"\bon[a-z][a-z0-9_-]*\s*=", re.IGNORECASE),
-    re.compile(r"<\s*(?:iframe|object|embed)\b", re.IGNORECASE),
+    re.compile(r"<\s*/?\s*(?:iframe|object|embed|svg)\b", re.IGNORECASE),
     re.compile(r"\beval\s*\(", re.IGNORECASE),
     re.compile(r"\bdocument\s*\.\s*write\s*\(", re.IGNORECASE),
-    re.compile(r"\bwindow\s*\.\s*location\s*=", re.IGNORECASE),
+    re.compile(r"\bwindow\s*\.\s*location\b", re.IGNORECASE),
+    re.compile(r"\bfunction(?:\s+[A-Za-z_$][\w$]*)?\s*\(", re.IGNORECASE),
     re.compile(r"\batob\s*\(", re.IGNORECASE),
     re.compile(r"\bfromCharCode\s*\(", re.IGNORECASE),
     re.compile(r"(?:[A-Za-z0-9+/]{200,}={0,2})"),
@@ -91,6 +93,7 @@ def inert_record(
     source: str,
     label: str,
     url: str,
+    final_url: str | None = None,
     split: str,
     title: str = "",
     visible_text: str = "",
@@ -107,6 +110,7 @@ def inert_record(
     if split not in VALID_SPLITS:
         raise ValueError(f"unsupported split: {split!r}")
     normalized = normalized_url(url)
+    normalized_final = normalized_url(final_url) if final_url else None
     record = {
         "sampleId": sample_id,
         "source": source,
@@ -115,7 +119,7 @@ def inert_record(
         "input": {
             "analysisId": sample_id,
             "requestedUrl": normalized,
-            "finalUrl": normalized,
+            "finalUrl": normalized_final,
             "statusCode": status_code,
             "page": {"title": title, "visibleText": visible_text, "html": ""},
             "inputs": inputs or [],
@@ -150,7 +154,8 @@ def deduplicate(records: Iterable[dict[str, Any]], stats: AdapterStats) -> list[
     unique: list[dict[str, Any]] = []
     seen: set[str] = set()
     for record in records:
-        url = normalized_url(record["input"]["finalUrl"])
+        raw_url = record["input"].get("finalUrl") or record["input"].get("requestedUrl")
+        url = normalized_url(raw_url)
         if url in seen:
             stats.duplicates += 1
             continue

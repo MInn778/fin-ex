@@ -115,6 +115,7 @@ def test_run_writes_summary_report_and_jsonl(tmp_path):
     assert {"summary.json", "report.md", "predictions.jsonl", "errors.jsonl", "review_cases.jsonl"} == {p.name for p in run_dir.iterdir()}
     assert "Strict Metrics" in (run_dir / "report.md").read_text(encoding="utf-8")
     assert "Synthetic fixture performance is not an estimate" in (run_dir / "report.md").read_text(encoding="utf-8")
+    assert "static URL metadata" in (run_dir / "report.md").read_text(encoding="utf-8")
     json.loads((run_dir / "summary.json").read_text(encoding="utf-8"))
 
 
